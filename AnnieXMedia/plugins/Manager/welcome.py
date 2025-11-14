@@ -8,6 +8,10 @@ from pyrogram.errors import TopicClosed, PeerIdInvalid, ChannelPrivate, Slowmode
 from AnnieXMedia import app
 from AnnieXMedia.mongo.welcomedb import is_on, set_state, bump, cool, auto_on
 
+BG_PATH = "AnnieXMedia/assets/annie/welcome.png"
+FALLBACK_PIC = "AnnieXMedia/assets/upic.png"
+FONT_PATH = "AnnieXMedia/assets/annie/Arimo.ttf"
+
 BTN_VIEW = "๏ ᴠɪᴇᴡ ɴᴇᴡ ᴍᴇᴍʙᴇʀ ๏"
 BTN_ADD = "๏ ᴋɪᴅɴᴀᴘ ᴍᴇ ๏"
 
