@@ -63,9 +63,7 @@ async def whois_handler(_, message: Message):
             f"➣ <b>ʙᴏᴛ:</b> {'ʏᴇs 🤖' if user.is_bot else 'ɴᴏ 👤'}\n"
             f"➣ <b>sᴄᴀᴍ ᴀᴄᴄᴏᴜɴᴛ:</b> {'ʏᴇs ⚠️' if getattr(user, 'is_scam', False) else 'ɴᴏ ☑️'}\n"
             f"➣ <b>ғᴀᴋᴇ ᴀᴄᴄᴏᴜɴᴛ:</b> {'ʏᴇs 🎭' if getattr(user, 'is_fake', False) else 'ɴᴏ ☑️'}\n"
-            f"➣ <b>ᴘʀᴏғɪʟᴇ ᴘɪᴄᴛᴜʀᴇ:</b> {'ʏᴇs 🌠' if user.photo else 'ɴᴏ 🥀'}\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"➣ <b>ʙɪᴏ:</b> <code>{bio}</code>"
         )
 
         profile_url = f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
