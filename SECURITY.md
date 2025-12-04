@@ -20,9 +20,9 @@
 ᴀɴᴅ ᴛʜᴇɴ ᴍᴀᴋᴇ ᴀ ɪssᴜᴇ ɪɴ ᴏᴜʀ ᴘʀᴏᴊᴇᴄᴛ.
 
 ## ᴀɴɴɪᴇ x ᴍᴜsɪᴄ ᴏᴡɴᴇʀ
-- [ɢɪᴛʜᴜʙ](https://github.com/CertifiedCoders)
-- [ᴛᴇʟᴇɢʀᴀᴍ](https://t.me/CertifiedCoder)
-- [ sᴜᴘᴘᴏʀᴛ](https://t.me/CertifiedCoders)
+- [ɢɪᴛʜᴜʙ](https://t.me/ganaasupport)
+- [ᴛᴇʟᴇɢʀᴀᴍ](https://t.me/ganaasupport)
+- [ sᴜᴘᴘᴏʀᴛ](https://t.me/ganaasupport)
 
 ## ɪɴғᴏ 
 ᴛʜɪs ɪs **ᴀɴɴɪᴇ x ᴍᴜsɪᴄ** , ᴏᴩᴇɴ sᴏᴜʀᴄᴇ ᴛᴇʟᴇɢʀᴀᴍ ᴠᴄ ᴍᴜsɪᴄ ᴘʟᴀʏᴇʀ ʙᴏᴛ ᴡɪᴛʜ sᴏᴍᴇ ɢʀᴏᴜᴘ ᴍᴀɴᴀɢᴀᴇᴍᴇɴᴛ ғᴇᴀᴛᴜʀᴇs.
