@@ -20,9 +20,9 @@
 ᴀɴᴅ ᴛʜᴇɴ ᴍᴀᴋᴇ ᴀ ɪssᴜᴇ ɪɴ ᴏᴜʀ ᴘʀᴏᴊᴇᴄᴛ.
 
 ## ᴀɴɴɪᴇ x ᴍᴜsɪᴄ ᴏᴡɴᴇʀ
-- [ɢɪᴛʜᴜʙ](https://t.me/ganaasupport)
-- [ᴛᴇʟᴇɢʀᴀᴍ](https://t.me/ganaasupport)
-- [ sᴜᴘᴘᴏʀᴛ](https://t.me/ganaasupport)
+- [ɢɪᴛʜᴜʙ](https://t.me/shona_bots)
+- [ᴛᴇʟᴇɢʀᴀᴍ](https://t.me/shona_bots)
+- [ sᴜᴘᴘᴏʀᴛ](https://t.me/shona_bots)
 
 ## ɪɴғᴏ 
 ᴛʜɪs ɪs **ᴀɴɴɪᴇ x ᴍᴜsɪᴄ** , ᴏᴩᴇɴ sᴏᴜʀᴄᴇ ᴛᴇʟᴇɢʀᴀᴍ ᴠᴄ ᴍᴜsɪᴄ ᴘʟᴀʏᴇʀ ʙᴏᴛ ᴡɪᴛʜ sᴏᴍᴇ ɢʀᴏᴜᴘ ᴍᴀɴᴀɢᴀᴇᴍᴇɴᴛ ғᴇᴀᴛᴜʀᴇs.
