@@ -126,7 +126,15 @@ class YouTubeAPI:
         info = result[0]
         duration = info.get("duration")
         seconds = int(time_to_seconds(duration)) if duration else 0
-        thumb = info.get("thumbnail", "").split("?")[0]
+        thumb = ""
+        if "thumbnail" in info and info["thumbnail"]:
+            thumb = info["thumbnail"]
+        elif "thumbnails" in info and info["thumbnails"]:
+            for t in info["thumbnails"]:
+                if "url" in t and t["url"]:
+                    thumb = t["url"]
+                    break
+        thumb = thumb.split("?")[0] if thumb else ""
 
         return (
             info.get("title", ""),
@@ -136,7 +144,7 @@ class YouTubeAPI:
             info.get("id", ""),
         )
 
-    # ---------- TRACK (SEARCH + FALLBACK) ----------
+    # ---------- TRACK (SEARCH + FALLBACK + THUMBNAIL FIX) ----------
     @capture_internal_err
     async def track(
         self, link: str, videoid: Union[str, bool, None] = None
@@ -166,15 +174,16 @@ class YouTubeAPI:
 
             info = json.loads(stdout.decode())
 
+        # Robust thumbnail handling
         thumb = ""
         if "thumbnail" in info and info["thumbnail"]:
-    thumb = info["thumbnail"]
-elif "thumbnails" in info and info["thumbnails"]:
-    for t in info["thumbnails"]:
-        if "url" in t and t["url"]:
-            thumb = t["url"]
-            break
-thumb = thumb.split("?")[0] if thumb else ""
+            thumb = info["thumbnail"]
+        elif "thumbnails" in info and info["thumbnails"]:
+            for t in info["thumbnails"]:
+                if "url" in t and t["url"]:
+                    thumb = t["url"]
+                    break
+        thumb = thumb.split("?")[0] if thumb else ""
 
         details = {
             "title": info.get("title", ""),
@@ -186,7 +195,7 @@ thumb = thumb.split("?")[0] if thumb else ""
 
         return details, info.get("id", "")
 
-    # ---------- DOWNLOAD (FULLY COMPATIBLE) ----------
+    # ---------- DOWNLOAD (PARAMETER COMPATIBLE) ----------
     @capture_internal_err
     async def download(
         self,
@@ -198,19 +207,19 @@ thumb = thumb.split("?")[0] if thumb else ""
     ) -> Tuple[Optional[str], Optional[bool]]:
         link = self._prepare_link(link)
 
-        # VIDEO
+        # VIDEO MODE
         if video:
             p = await yt_dlp_download(
                 link,
                 type="video",
-                title="video",
+                title=await self.title(link) if hasattr(self, "title") else "video",
             )
             return (p, True) if p else (None, None)
 
-        # AUDIO
+        # AUDIO MODE
         p = await yt_dlp_download(
             link,
             type="audio",
-            title="audio",
+            title=await self.title(link) if hasattr(self, "title") else "audio",
         )
         return (p, True) if p else (None, None)
