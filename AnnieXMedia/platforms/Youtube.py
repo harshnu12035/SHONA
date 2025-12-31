@@ -166,10 +166,15 @@ class YouTubeAPI:
 
             info = json.loads(stdout.decode())
 
-        thumb = (
-            info.get("thumbnail")
-            or info.get("thumbnails", [{}])[0].get("url", "")
-        ).split("?")[0]
+        thumb = ""
+        if "thumbnail" in info and info["thumbnail"]:
+    thumb = info["thumbnail"]
+elif "thumbnails" in info and info["thumbnails"]:
+    for t in info["thumbnails"]:
+        if "url" in t and t["url"]:
+            thumb = t["url"]
+            break
+thumb = thumb.split("?")[0] if thumb else ""
 
         details = {
             "title": info.get("title", ""),
