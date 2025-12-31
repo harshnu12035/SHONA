@@ -356,67 +356,64 @@ class YouTubeAPI:
             r.get("thumbnails", [{}])[0].get("url", "").split("?")[0],
             r.get("id", ""),
         )
+@capture_internal_err
+    async def track(self, link: str, videoid: Union[str, bool, None] = None) -> Tuple[Dict, str]:
+        prepared_link = self._prepare_link(link, videoid)
 
-   @capture_internal_err
-async def track(self, link: str, videoid: Union[str, bool, None] = None) -> Tuple[Dict, str]:
-    prepared_link = self._prepare_link(link, videoid)
+        info = None
+        search_err = None
 
-    info = None
-    search_err = None
-
-    # ---- 1️⃣ Try youtubesearchpython first (text search ke liye)
-    try:
-        info = await self._fetch_video_info(prepared_link)
-    except Exception as e:
-        search_err = e
-
-    # ---- 2️⃣ Fallback to yt-dlp (ytsearch mode)
-    if not info:
-        # agar URL nahi hai to ytsearch use karo
-        if not prepared_link.startswith("http"):
-            ytdlp_query = f"ytsearch1:{prepared_link}"
-        else:
-            ytdlp_query = prepared_link
-
-        stdout, stderr = await _exec_proc(
-            "yt-dlp",
-            *(_cookies_args()),
-            "--dump-json",
-            "--no-warnings",
-            ytdlp_query,
-        )
-
-        if not stdout:
-            stderr_msg = stderr.decode().strip() if stderr else "Empty response"
-            raise ValueError(
-                f"Both methods failed for '{prepared_link}':\n"
-                f"  1. youtubesearchpython error: {search_err}\n"
-                f"  2. yt-dlp error: {stderr_msg}"
-            )
-
+        # 1️⃣ Try youtubesearchpython
         try:
-            info = json.loads(stdout.decode())
-        except json.JSONDecodeError as json_err:
-            raise ValueError(
-                f"yt-dlp returned invalid JSON for '{prepared_link}': {json_err}"
+            info = await self._fetch_video_info(prepared_link)
+        except Exception as e:
+            search_err = e
+
+        # 2️⃣ Fallback to yt-dlp (search mode)
+        if not info:
+            if not prepared_link.startswith("http"):
+                ytdlp_query = f"ytsearch1:{prepared_link}"
+            else:
+                ytdlp_query = prepared_link
+
+            stdout, stderr = await _exec_proc(
+                "yt-dlp",
+                *(_cookies_args()),
+                "--dump-json",
+                "--no-warnings",
+                ytdlp_query,
             )
 
-    # ---- 3️⃣ Normalize data
-    thumb = (
-        info.get("thumbnail")
-        or info.get("thumbnails", [{}])[0].get("url", "")
-    ).split("?")[0]
+            if not stdout:
+                stderr_msg = stderr.decode().strip() if stderr else "Empty response"
+                raise ValueError(
+                    f"Both methods failed for '{prepared_link}':\n"
+                    f"  1. youtubesearchpython error: {search_err}\n"
+                    f"  2. yt-dlp error: {stderr_msg}"
+                )
 
-    details = {
-        "title": info.get("title", ""),
-        "link": info.get("webpage_url", self.base_url + info.get("id", "")),
-        "vidid": info.get("id", ""),
-        "duration_min": (
-            info.get("duration")
-            if isinstance(info.get("duration"), str)
-            else None
-        ),
-        "thumb": thumb,
-    }
+            try:
+                info = json.loads(stdout.decode())
+            except json.JSONDecodeError as json_err:
+                raise ValueError(
+                    f"yt-dlp returned invalid JSON for '{prepared_link}': {json_err}"
+                )
 
-    return details, info.get("id", "") 
+        thumb = (
+            info.get("thumbnail")
+            or info.get("thumbnails", [{}])[0].get("url", "")
+        ).split("?")[0]
+
+        details = {
+            "title": info.get("title", ""),
+            "link": info.get("webpage_url", self.base_url + info.get("id", "")),
+            "vidid": info.get("id", ""),
+            "duration_min": (
+                info.get("duration")
+                if isinstance(info.get("duration"), str)
+                else None
+            ),
+            "thumb": thumb,
+        }
+
+        return details, info.get("id", "")
