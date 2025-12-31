@@ -357,39 +357,66 @@ class YouTubeAPI:
             r.get("id", ""),
         )
 
-    @capture_internal_err
-    async def download(
-        self,
-        link: str,
-        mystic,
-        *,
-        video: Union[bool, str, None] = None,
-        videoid: Union[str, bool, None] = None,
-    ) -> Union[Tuple[str, Optional[bool]], Tuple[None, None]]:
-        link = self._prepare_link(link, videoid)
+   @capture_internal_err
+async def track(self, link: str, videoid: Union[str, bool, None] = None) -> Tuple[Dict, str]:
+    prepared_link = self._prepare_link(link, videoid)
 
-        if video:
-            if await self.is_live(link):
-                status, stream_url = await self.video(link)
-                if status == 1:
-                    return stream_url, None
-                return None, None
+    info = None
+    search_err = None
 
-            if await is_on_off(1):
-                p = await yt_dlp_download(link, type="video", title=await self.title(link))
-                return (p, True) if p else (None, None)
+    # ---- 1️⃣ Try youtubesearchpython first (text search ke liye)
+    try:
+        info = await self._fetch_video_info(prepared_link)
+    except Exception as e:
+        search_err = e
 
-            stdout, _ = await _exec_proc(
-                "yt-dlp",
-                *(_cookies_args()),
-                "-g",
-                "-f",
-                "best[height<=?720][width<=?1280]",
-                link,
+    # ---- 2️⃣ Fallback to yt-dlp (ytsearch mode)
+    if not info:
+        # agar URL nahi hai to ytsearch use karo
+        if not prepared_link.startswith("http"):
+            ytdlp_query = f"ytsearch1:{prepared_link}"
+        else:
+            ytdlp_query = prepared_link
+
+        stdout, stderr = await _exec_proc(
+            "yt-dlp",
+            *(_cookies_args()),
+            "--dump-json",
+            "--no-warnings",
+            ytdlp_query,
+        )
+
+        if not stdout:
+            stderr_msg = stderr.decode().strip() if stderr else "Empty response"
+            raise ValueError(
+                f"Both methods failed for '{prepared_link}':\n"
+                f"  1. youtubesearchpython error: {search_err}\n"
+                f"  2. yt-dlp error: {stderr_msg}"
             )
-            if stdout:
-                return stdout.decode().split("\n")[0], None
-            return None, None
 
-        p = await yt_dlp_download(link, type="audio", title=await self.title(link))
-        return (p, True) if p else (None, None)
+        try:
+            info = json.loads(stdout.decode())
+        except json.JSONDecodeError as json_err:
+            raise ValueError(
+                f"yt-dlp returned invalid JSON for '{prepared_link}': {json_err}"
+            )
+
+    # ---- 3️⃣ Normalize data
+    thumb = (
+        info.get("thumbnail")
+        or info.get("thumbnails", [{}])[0].get("url", "")
+    ).split("?")[0]
+
+    details = {
+        "title": info.get("title", ""),
+        "link": info.get("webpage_url", self.base_url + info.get("id", "")),
+        "vidid": info.get("id", ""),
+        "duration_min": (
+            info.get("duration")
+            if isinstance(info.get("duration"), str)
+            else None
+        ),
+        "thumb": thumb,
+    }
+
+    return details, info.get("id", "") 
