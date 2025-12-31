@@ -19,7 +19,16 @@ from AnnieXMedia.utils.formatters import time_to_seconds
 from AnnieXMedia.utils.tuning import YTDLP_TIMEOUT, YOUTUBE_META_MAX, YOUTUBE_META_TTL
 
 
-# ================= CACHES =================
+# ================= THUMBNAIL SYSTEM =================
+DEFAULT_THUMB = "https://telegra.ph/file/8c6a5b9f3b6c1e6b9c7a2.jpg"
+
+def dual_thumb(video_id: str) -> str:
+    if video_id:
+        return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+    return DEFAULT_THUMB
+
+
+# ================= CACHE =================
 _cache: Dict[str, Tuple[float, List[Dict]]] = {}
 _cache_lock = asyncio.Lock()
 
@@ -118,6 +127,7 @@ class YouTubeAPI:
     async def details(
         self, link: str, videoid: Union[str, bool, None] = None
     ) -> Tuple[str, Optional[str], int, str, str]:
+
         query = self._prepare_link(link)
         result = await cached_youtube_search(query)
         if not result:
@@ -126,32 +136,25 @@ class YouTubeAPI:
         info = result[0]
         duration = info.get("duration")
         seconds = int(time_to_seconds(duration)) if duration else 0
-        thumb = ""
-        if "thumbnail" in info and info["thumbnail"]:
-            thumb = info["thumbnail"]
-        elif "thumbnails" in info and info["thumbnails"]:
-            for t in info["thumbnails"]:
-                if "url" in t and t["url"]:
-                    thumb = t["url"]
-                    break
-        thumb = thumb.split("?")[0] if thumb else ""
+        vid = info.get("id", "")
 
         return (
             info.get("title", ""),
             duration,
             seconds,
-            thumb,
-            info.get("id", ""),
+            dual_thumb(vid),
+            vid,
         )
 
-    # ---------- TRACK (SEARCH + FALLBACK + THUMBNAIL FIX) ----------
+    # ---------- TRACK ----------
     @capture_internal_err
     async def track(
         self, link: str, videoid: Union[str, bool, None] = None
     ) -> Tuple[Dict, str]:
-        query = self._prepare_link(link)
 
+        query = self._prepare_link(link)
         info = None
+
         result = await cached_youtube_search(query)
         if result:
             info = result[0]
@@ -174,28 +177,19 @@ class YouTubeAPI:
 
             info = json.loads(stdout.decode())
 
-        # Robust thumbnail handling
-        thumb = ""
-        if "thumbnail" in info and info["thumbnail"]:
-            thumb = info["thumbnail"]
-        elif "thumbnails" in info and info["thumbnails"]:
-            for t in info["thumbnails"]:
-                if "url" in t and t["url"]:
-                    thumb = t["url"]
-                    break
-        thumb = thumb.split("?")[0] if thumb else ""
+        vid = info.get("id", "")
 
         details = {
             "title": info.get("title", ""),
-            "link": info.get("webpage_url", self.base_url + info.get("id", "")),
-            "vidid": info.get("id", ""),
+            "link": info.get("webpage_url", self.base_url + vid),
+            "vidid": vid,
             "duration_min": info.get("duration"),
-            "thumb": thumb,
+            "thumb": dual_thumb(vid),
         }
 
-        return details, info.get("id", "")
+        return details, vid
 
-    # ---------- DOWNLOAD (PARAMETER COMPATIBLE) ----------
+    # ---------- DOWNLOAD ----------
     @capture_internal_err
     async def download(
         self,
@@ -205,21 +199,20 @@ class YouTubeAPI:
         video: Union[bool, str, None] = None,
         videoid: Union[str, bool, None] = None,
     ) -> Tuple[Optional[str], Optional[bool]]:
+
         link = self._prepare_link(link)
 
-        # VIDEO MODE
         if video:
             p = await yt_dlp_download(
                 link,
                 type="video",
-                title=await self.title(link) if hasattr(self, "title") else "video",
+                title="video",
             )
             return (p, True) if p else (None, None)
 
-        # AUDIO MODE
         p = await yt_dlp_download(
             link,
             type="audio",
-            title=await self.title(link) if hasattr(self, "title") else "audio",
+            title="audio",
         )
         return (p, True) if p else (None, None)
