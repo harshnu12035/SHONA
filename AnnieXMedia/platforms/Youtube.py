@@ -19,16 +19,12 @@ from AnnieXMedia.utils.formatters import time_to_seconds
 from AnnieXMedia.utils.tuning import YTDLP_TIMEOUT, YOUTUBE_META_MAX, YOUTUBE_META_TTL
 
 
-# ===================== CACHES =====================
+# ================= CACHES =================
 _cache: Dict[str, Tuple[float, List[Dict]]] = {}
 _cache_lock = asyncio.Lock()
 
 
-# ===================== CONSTANTS =====================
-YOUTUBE_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{11}$")
-
-
-# ===================== HELPERS =====================
+# ================= HELPERS =================
 def _cookiefile_path() -> Optional[str]:
     try:
         if COOKIE_PATH and os.path.exists(COOKIE_PATH) and os.path.getsize(COOKIE_PATH) > 0:
@@ -85,12 +81,13 @@ async def cached_youtube_search(query: str) -> List[Dict]:
     return result
 
 
-# ===================== MAIN CLASS =====================
+# ================= MAIN CLASS =================
 class YouTubeAPI:
     def __init__(self) -> None:
         self.base_url = "https://www.youtube.com/watch?v="
         self._url_pattern = re.compile(r"(youtube\.com|youtu\.be)")
 
+    # ---------- URL UTILS ----------
     def _prepare_link(self, text: str) -> str:
         text = text.strip()
         if "youtu.be" in text:
@@ -99,7 +96,6 @@ class YouTubeAPI:
             return self.base_url + text.split("/")[-1].split("?")[0]
         return text.split("&")[0]
 
-    # ---------------- URL DETECTION ----------------
     @capture_internal_err
     async def exists(self, link: str) -> bool:
         return bool(self._url_pattern.search(link))
@@ -117,33 +113,51 @@ class YouTubeAPI:
                     return ent.url
         return None
 
-    # ---------------- TRACK (MAIN FIX) ----------------
+    # ---------- DETAILS ----------
     @capture_internal_err
-    async def track(self, query: str) -> Tuple[Dict, str]:
-        query = self._prepare_link(query)
+    async def details(
+        self, link: str, videoid: Union[str, bool, None] = None
+    ) -> Tuple[str, Optional[str], int, str, str]:
+        query = self._prepare_link(link)
+        result = await cached_youtube_search(query)
+        if not result:
+            raise ValueError("No results found")
+
+        info = result[0]
+        duration = info.get("duration")
+        seconds = int(time_to_seconds(duration)) if duration else 0
+        thumb = info.get("thumbnail", "").split("?")[0]
+
+        return (
+            info.get("title", ""),
+            duration,
+            seconds,
+            thumb,
+            info.get("id", ""),
+        )
+
+    # ---------- TRACK (SEARCH + FALLBACK) ----------
+    @capture_internal_err
+    async def track(
+        self, link: str, videoid: Union[str, bool, None] = None
+    ) -> Tuple[Dict, str]:
+        query = self._prepare_link(link)
+
         info = None
+        result = await cached_youtube_search(query)
+        if result:
+            info = result[0]
 
-        # 1️⃣ Try youtubesearchpython
-        try:
-            result = await cached_youtube_search(query)
-            if result:
-                info = result[0]
-        except Exception:
-            pass
-
-        # 2️⃣ Fallback to yt-dlp (SEARCH MODE)
         if not info:
             if not query.startswith("http"):
-                ytdlp_query = f"ytsearch1:{query}"
-            else:
-                ytdlp_query = query
+                query = f"ytsearch1:{query}"
 
             stdout, stderr = await _exec_proc(
                 "yt-dlp",
                 *(_cookies_args()),
                 "--dump-json",
                 "--no-warnings",
-                ytdlp_query,
+                query,
             )
 
             if not stdout:
@@ -167,9 +181,31 @@ class YouTubeAPI:
 
         return details, info.get("id", "")
 
-    # ---------------- DOWNLOAD ----------------
+    # ---------- DOWNLOAD (FULLY COMPATIBLE) ----------
     @capture_internal_err
-    async def download(self, link: str):
+    async def download(
+        self,
+        link: str,
+        mystic,
+        *,
+        video: Union[bool, str, None] = None,
+        videoid: Union[str, bool, None] = None,
+    ) -> Tuple[Optional[str], Optional[bool]]:
         link = self._prepare_link(link)
-        p = await yt_dlp_download(link, type="audio", title="audio")
-        return p
+
+        # VIDEO
+        if video:
+            p = await yt_dlp_download(
+                link,
+                type="video",
+                title="video",
+            )
+            return (p, True) if p else (None, None)
+
+        # AUDIO
+        p = await yt_dlp_download(
+            link,
+            type="audio",
+            title="audio",
+        )
+        return (p, True) if p else (None, None)
